@@ -4,12 +4,16 @@ Planificador de vacaciones para trabajar en **Las Palmas de Gran Canaria**: sabe
 
 ## Qué hace
 
-- **Inicio**: saldo de días, aviso de urgencia si te sobran días y quedan pocos laborables, próximas vacaciones, mejores puentes que vienen, próximos festivos y avisos.
-- **Calendario**: los 12 meses; toca para marcar *Vacaciones*, *No disponible* o *Pareja*; modo rango; **mapa de calor** (qué días rinden más); bloques resultantes con su rendimiento; copiar solicitud lista para enviar; exportar `.ics` con avisos 7 días y 1 día antes; imprimir.
-- **Puentes**: ranking de combinaciones (`días libres seguidos / días pedidos`) con filtro de días máximos; añadir o quitar con un toque.
-- **Plan**: 4 estrategias comparadas (*Máximo rendimiento*, *Equilibrado*, *Verano largo + puentes*, *Semana Santa y Navidad*). Optimización exacta por programación dinámica: bloques que no se tocan, dentro de tu presupuesto, respetando lo ya marcado y tus días no disponibles.
-- **Festivos**: lista completa del año con estado (**oficial / parcial / estimado**), fuente, notas, festivos que caen en fin de semana, cambios detectados, suscripción `.ics` y estado de las lecturas.
-- **Ajustes**: días anuales, extra/arrastrados por año, margen tras el 31 dic, días que trabajas (por si sábado es laborable), días de empresa, tema, copia de seguridad, importar a tu pareja (ver días libres en común), sincronizar con GitHub.
+Tres pestañas (en móvil, barra inferior) y un engranaje para Ajustes; el año se cambia arriba.
+
+- **Inicio**: anillo con tu saldo, botones para **guardar días para el año siguiente** y **dejar reserva para imprevistos**, avisos (días que caducan, conflictos con festivos), próximas vacaciones y mejores puentes.
+- **Calendario**: vista *Mes*, *Año* o *Festivos* (con estado oficial/parcial/estimado y fuente). Toca para marcar *Vacaciones*, *No disponible* o *Pareja*; modo rango; mapa de calor; copiar solicitud; exportar `.ics`; imprimir.
+- **Descubrir**: *Puentes* (ranking días libres / días pedidos) y *Plan*, donde eliges cómo quieres tus vacaciones: navidades normales o largas, verano de 1, 2 o 3 semanas y qué meses, Semana Santa, distribución (concentrada, equilibrada o repartida), qué priorizar y cuántos días reservar. Compara 3 planes óptimos (programación dinámica) y aplicas el que prefieras.
+- **Ajustes**: días anuales, *Días sin disfrutar* (máximo que se puede guardar, por defecto 5, y fecha de caducidad **opcional**: sin activarla, los días guardados no caducan), extras por año, días de empresa, jornada, tema, copia de seguridad, pareja y sincronización con GitHub.
+
+### Días sin disfrutar
+
+Los días que guardas de un año entran en el siguiente como "entrantes" y el plan los coloca primero, antes de su fecha de caducidad. Si activas la caducidad y no los usas a tiempo, se muestran como perdidos. Ajusta el máximo y la fecha según tu convenio.
 
 ## Cómo se mantienen los festivos
 

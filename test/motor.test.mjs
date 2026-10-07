@@ -1,8 +1,9 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
+import { diasEntre } from "../lib/util.mjs";
 import { creaFestivos, pascua, carnavalMartes, reglas } from "../lib/festivos.mjs";
-import { tocan, SEMANA_L_V, esLaborable, candidatos, puentes, planOptimo, PRESETS, bloquesActuales, saldo, conflictos, valorDia } from "../lib/motor.mjs";
+import { DISTRIBUCIONES, planConArrastre, tocan, SEMANA_L_V, esLaborable, candidatos, puentes, planOptimo, PRESETS, bloquesActuales, saldo, conflictos, valorDia } from "../lib/motor.mjs";
 
 const datos = JSON.parse(readFileSync(new URL("../data/semilla.json", import.meta.url)));
 const mk = (vac = [], bloq = []) => ({ festivos: creaFestivos(datos, {}), semana: SEMANA_L_V, vac: new Set(vac), bloqueados: new Set(bloq) });
@@ -45,7 +46,7 @@ test("candidatos: bloque exacto de Navidad 2026", () => {
 });
 test("saldo y bloques actuales", () => {
   const c = mk(["2026-12-07", "2026-12-09"]);
-  assert.deepEqual(saldo(c, { diasAnuales: 22, arrastrados: 0, extra: 0 }, 2026), { total: 22, usados: 2, restantes: 20 });
+  const sd = saldo(c, { diasAnuales: 22, extra: 0 }, 2026); assert.deepEqual([sd.total, sd.usados, sd.restantes], [22, 2, 20]);
   const b = bloquesActuales(c, 2026);
   assert.equal(b.length, 1); assert.equal(b[0].ini, "2026-12-05"); assert.equal(b[0].fin, "2026-12-09"); assert.equal(b[0].libres, 5);
 });
@@ -82,4 +83,58 @@ test("valor de un día: lunes 7 dic = 4, un miércoles cualquiera = 1", () => {
 test("semana de 6 días laborables (sábado se trabaja)", () => {
   const c = { ...mk(), semana: new Set([1, 2, 3, 4, 5, 6]) };
   assert.equal(esLaborable(c, "2026-10-10"), true);
+});
+
+test("saldo con días guardados: caducan en la fecha límite y se pueden guardar hasta el máximo", () => {
+  const cfg = { diasAnuales: 22, entrantes: 4, limiteEntrantes: "2026-03-31", arrastreMax: 5, hoy: "2026-02-01" };
+  let s = saldo(mk(["2026-03-02", "2026-03-03"]), cfg, 2026);
+  assert.equal(s.total, 26); assert.equal(s.entrantesEnRiesgo, 2); assert.equal(s.caducados, 0); assert.equal(s.restantes, 24);
+  s = saldo(mk(["2026-03-02", "2026-03-03"]), { ...cfg, hoy: "2026-04-10" }, 2026);
+  assert.equal(s.caducados, 2); assert.equal(s.restantes, 22);       // 2 de los 4 guardados se perdieron
+  s = saldo(mk(["2026-05-04"]), { ...cfg, hoy: "2026-06-01", guardar: 9 }, 2026);
+  assert.equal(s.guardables, 5); assert.equal(s.guardar, 5);         // tope de la empresa
+  assert.equal(saldo(mk(), { diasAnuales: 22, arrastreMax: 0, guardar: 3 }, 2026).guardar, 0);
+});
+test("plan con arrastre coloca antes de la fecha límite los días que caducan", () => {
+  const c = mk(); const plan = planConArrastre(c, 2027, { ...PRESETS.rendimiento, presupuesto: 12, riesgo: 4, limite: "2027-03-31", desde: "2027-01-01" });
+  const antes = plan.bloques.flatMap((b) => b.pedir).filter((d) => d <= "2027-03-31").length;
+  assert.ok(antes >= 4, `solo ${antes} antes del límite`); assert.ok(plan.coste <= 12);
+  for (let i = 1; i < plan.bloques.length; i++) assert.ok(!tocan(plan.bloques[i], plan.bloques[i - 1]));
+});
+
+test("Navidad larga: el plan coloca un bloque grande en diciembre", () => {
+  const c = mk(); const navidad = (a) => (b) => b.pedir.some((d) => d >= `${a}-12-21`) && b.fin >= `${a}-12-26`;
+  const plan = planOptimo(c, 2027, { ...DISTRIBUCIONES.equilibrada, presupuesto: 22, anclas: [{ min: 6, max: 9, filtro: navidad(2027) }] });
+  const nav = plan.bloques.find((b) => b.pedir.some((d) => d >= "2027-12-21"));
+  assert.ok(nav && nav.coste >= 6 && nav.coste <= 9, JSON.stringify(nav?.pedir)); assert.equal(plan.anclasCumplidas, 1);
+});
+test("Verano + Navidad a la vez, y si no caben se avisa", () => {
+  const c = mk(); const navidad = (b) => b.pedir.some((d) => d >= "2027-12-21") && b.fin >= "2027-12-26";
+  const dos = planOptimo(c, 2027, { ...DISTRIBUCIONES.equilibrada, presupuesto: 22, anclas: [{ min: 9, max: 11, meses: [7, 8] }, { min: 6, max: 9, filtro: navidad }] });
+  assert.equal(dos.anclasCumplidas, 2); assert.ok(dos.coste <= 22);
+  const poco = planOptimo(c, 2027, { ...DISTRIBUCIONES.equilibrada, presupuesto: 8, anclas: [{ min: 9, max: 11, meses: [7, 8] }, { min: 6, max: 9, filtro: navidad }] });
+  assert.ok(poco.anclasCumplidas < 2);
+});
+test("Repartida respeta la separación mínima entre bloques", () => {
+  const plan = planOptimo(mk(), 2027, { ...DISTRIBUCIONES.repartida, presupuesto: 14 });
+  assert.ok(plan.bloques.length >= 3);
+  for (let i = 1; i < plan.bloques.length; i++) assert.ok(diasEntre(plan.bloques[i - 1].fin, plan.bloques[i].ini) - 1 >= 21, "separación");
+});
+test("Concentrada usa pocos bloques largos", () => {
+  const plan = planOptimo(mk(), 2027, { ...DISTRIBUCIONES.concentrada, presupuesto: 22 });
+  assert.ok(plan.bloques.length <= 3); assert.ok(plan.bloques.every((b) => b.libres >= 8));
+});
+test("reserva de imprevistos reduce los días a repartir", () => {
+  const s = saldo(mk(), { diasAnuales: 22, reserva: 3, arrastreMax: 5, guardar: 2 }, 2026);
+  assert.equal(s.reserva, 3); assert.equal(s.aUsar, 17);
+  assert.equal(saldo(mk(), { diasAnuales: 22, reserva: 99 }, 2026).reserva, 22);
+});
+
+test("sin fecha de caducidad los días guardados nunca se pierden", () => {
+  const s = saldo(mk(), { diasAnuales: 22, entrantes: 4, limiteEntrantes: null, hoy: "2027-12-01" }, 2027);
+  assert.equal(s.caducados, 0); assert.equal(s.limiteEntrantes, null); assert.equal(s.restantes, 26);
+});
+test("el plan indica qué preferencia no cabe", () => {
+  const r = planOptimo(mk(), 2026, { ...DISTRIBUCIONES.equilibrada, presupuesto: 20, desde: "2026-10-07", anclas: [{ id: "verano", min: 9, max: 11, meses: [6, 7, 8, 9] }] });
+  assert.deepEqual(r.anclasNo, ["verano"]);
 });
