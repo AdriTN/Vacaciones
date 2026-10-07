@@ -38,14 +38,13 @@ test("parsearIndice y ejecución completa con red simulada", async () => {
     if (/\/boc\/2026\/001\/3029\.html/.test(url)) return { ok: true, status: 200, text: async () => doc };
     return { ok: false, status: 404, text: async () => "" };
   };
-  const { writeFile, rm } = await import("node:fs/promises");
-  const archivos = ["festivos.json", "cambios.json", "estado.json", "salud.json", "calendario.ics", "nuevos.md"];
-  const originales = {};
-  for (const f of archivos) originales[f] = await readFile(new URL(`../data/${f}`, import.meta.url), "utf8").catch(() => null);
-  const r = await ejecutar({ fetchFn: async (u) => respuestas(u), log: () => {}, ahora: new Date("2026-10-07T05:17:00Z") });
+  const { mkdtemp, mkdir, copyFile, rm } = await import("node:fs/promises");
+  const { tmpdir } = await import("node:os");
+  const dir = await mkdtemp(`${tmpdir()}/vac-`); await mkdir(`${dir}/data`);
+  await copyFile(new URL("../data/semilla.json", import.meta.url), `${dir}/data/semilla.json`);
+  const r = await ejecutar({ fetchFn: async (u) => respuestas(u), log: () => {}, ahora: new Date("2026-10-07T05:17:00Z"), dir });
   const loc = r.salida.anios[2027].festivos.filter((f) => f.tipo === "local").map((f) => f.fecha);
   assert.deepEqual(loc, ["2027-02-10", "2027-06-25"]);
   assert.equal(r.nuevos.length, 1); assert.equal(r.nuevos[0].anio, 2027);
-  // restaurar datos del repo tocados por la prueba
-  for (const f of archivos) { const u = new URL(`../data/${f}`, import.meta.url); if (originales[f] === null) await rm(u, { force: true }); else await writeFile(u, originales[f]); }
+  await rm(dir, { recursive: true, force: true });
 });

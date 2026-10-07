@@ -13,8 +13,8 @@ import { generarICS, eventosFestivos } from "../lib/ics.mjs";
 import { hoyISO } from "../lib/util.mjs";
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), "..");
-const leer = async (rel, def) => { try { return JSON.parse(await readFile(join(RAIZ, rel), "utf8")); } catch { return def; } };
-const escribir = async (rel, data) => { await mkdir(dirname(join(RAIZ, rel)), { recursive: true }); await writeFile(join(RAIZ, rel), typeof data === "string" ? data : JSON.stringify(data, null, 1) + "\n"); };
+const leerEn = async (raiz, rel, def) => { try { return JSON.parse(await readFile(join(raiz, rel), "utf8")); } catch { return def; } };
+const escribirEn = async (raiz, rel, data) => { await mkdir(dirname(join(raiz, rel)), { recursive: true }); await writeFile(join(raiz, rel), typeof data === "string" ? data : JSON.stringify(data, null, 1) + "\n"); };
 
 export async function descargar(url, fetchFn = fetch, intentos = 3) {
   let ultimo;
@@ -39,6 +39,7 @@ export function diferencias(antes, despues) {
 }
 
 export async function ejecutar({ fetchFn = fetch, ahora = new Date(), dir = RAIZ, log = console.log, maxNumeros = 400 } = {}) {
+  const leer = (rel, def) => leerEn(dir, rel, def), escribir = (rel, data) => escribirEn(dir, rel, data);
   const hoy = hoyISO(undefined, ahora), anioActual = Number(hoy.slice(0, 4));
   const previo = (await leer("data/festivos.json", null)) || (await leer("data/semilla.json", { anios: {} }));
   const estado = await leer("data/estado.json", { boc: {} });

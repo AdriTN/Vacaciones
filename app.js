@@ -16,7 +16,13 @@ function cargar() {
   return structuredClone(POR_DEFECTO);
 }
 let S = cargar();
-const guardar = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch {} };
+let tSync;
+const guardar = (sinMarca) => {
+  if (sinMarca !== true) S.modificado = new Date().toISOString();
+  try { localStorage.setItem(KEY, JSON.stringify(S)); } catch {}
+  const { repo, token, syncAuto } = S.ajustes;
+  if (sinMarca !== true && syncAuto && repo && token) { clearTimeout(tSync); tSync = setTimeout(() => sync("subir", { auto: true }), 4000); }
+};
 
 const hoy = hoyISO();
 const anioActual = anioDe(hoy);
@@ -167,14 +173,14 @@ function vPuentes() {
   UI.lastPuentes = lista;
   return `<p class="sub">Combinaciones de pocos días con festivos y fines de semana, ordenadas por rendimiento (días libres seguidos por cada día pedido).</p>
   <div class="card"><div class="form"><label class="campo">Máximo de días a pedir: <b>${UI.puentesMax}</b><input type="range" min="1" max="8" value="${UI.puentesMax}" data-ui="puentesMax"></label>
-  ${anio === anioActual ? `<label class="campo fila"><input type="checkbox" ${UI.soloFuturos ? "checked" : ""} data-ui="soloFuturos" style="width:22px;height:22px"><span>Solo los que aún no han pasado</span></label>` : ""}</div></div>
+  ${anio === anioActual ? `<label class="check"><input type="checkbox" ${UI.soloFuturos ? "checked" : ""} data-ui="soloFuturos"><span>Solo los que aún no han pasado</span></label>` : ""}</div></div>
   <div class="grid">${lista.map((b, i) => `<div class="card">${bloqueHTML(b, { botones: `<button class="btn chico ${estaAplicado(b) ? "" : "pri"}" data-act="toggle-puente" data-k="${i}" data-src="puentes">${estaAplicado(b) ? "Quitar de mi plan" : "Añadir a mi plan"}</button>` })}</div>`).join("") || `<div class="card"><p class="mut">No hay puentes que cumplan el filtro.</p></div>`}</div>`;
 }
 function planCard(clave, r) {
   const d = M.DISTRIBUCIONES[clave], rend = r.coste ? (r.libres / r.coste).toFixed(2).replace(".", ",") : "–", mia = S.ajustes.plan.distribucion === clave;
   return `<div class="card plan ${mia ? "elegida" : ""}"><div class="fila sp"><h3>${h(d.nombre)}${mia ? ' <span class="pill">tu elección</span>' : ""}</h3><span class="pill ok">×${rend}</span></div><p class="peq mut">${h(d.desc)}</p>
     <p class="peq"><b>${en(r.coste, "día", "días")}</b> pedidos · <b>${r.libres}</b> días libres en ${en(r.bloques.length, "bloque", "bloques")}${r.sinAsignar > 0 ? ` · <span style="color:var(--warn)">${r.sinAsignar} sin asignar</span>` : ""}</p>
-    ${r.anclasPedidas && r.anclasCumplidas < r.anclasPedidas ? `<p class="peq" style="color:var(--warn)">⚠ ${h(motivoAnclas(r))}</p>` : ""} chico" data-act="aplicar-plan" data-k="${clave}">Aplicar a mi calendario</button></div></div>`;
+    ${r.anclasPedidas && r.anclasCumplidas < r.anclasPedidas ? `<p class="peq" style="color:var(--warn)">⚠ ${h(motivoAnclas(r))}</p>` : ""}<button class="btn chico pri" data-act="aplicar-plan" data-k="${clave}">Aplicar a mi calendario</button></div>`;
 }
 const opcion = (g, k, t, actual) => `<button class="chip ${actual === k ? "on" : ""}" data-act="pref" data-k="${g}:${k}">${t}</button>`;
 const multi = (g, k, t, lista) => `<button class="chip ${lista.includes(k) ? "on" : ""}" data-act="pref" data-k="${g}:${k}">${t}</button>`;
@@ -206,7 +212,7 @@ function vFestivos() {
   return `<div class="card"><div class="fila sp"><h3>Festivos ${anio} · Las Palmas de Gran Canaria</h3><span class="pill ${est[0]}">${est[1]}</span></div><p class="peq mut">${h(y.fuente)}</p>${y.notas.map((n) => `<p class="peq">⚠ ${h(n)}</p>`).join("")}
   <p class="peq">${en(lista.length, "festivo", "festivos")}: <b>${res.enSemana}</b> caen en día laborable y <b>${res.perdidos.length}</b> en fin de semana${res.perdidos.length ? ` (${res.perdidos.map((f) => h(fechaCorta(f.fecha))).join(", ")})` : ""}.</p>
   <div class="fila noprint"><a class="btn chico" href="data/calendario.ics">Suscribirse (.ics)</a><button class="btn chico" data-act="ics-festivos">Descargar ${anio}</button></div></div>
-  <div class="card"><table class="t"><tbody>${lista.map((f) => `<tr class="${f.fecha < hoy ? "pasado" : ""}"><td class="num">${h(fechaLarga(f.fecha))}</td><td>${h(f.nombre)}${f.nota ? `<br><span class="peq mut">${h(f.nota)}</span>` : ""}${f.pendienteBOC ? `<br><span class="peq" style="color:var(--warn)">Pendiente de publicar en el BOC</span>` : ""}</td><td>${pillTipo(f.tipo)}</td><td class="peq mut">${S.ajustes.semana.includes(dow(f.fecha)) ? cuenta(f.fecha) : "fin de semana"}</td></tr>`).join("")}</tbody></table></div>
+  <div class="card"><table class="t fest"><tbody>${lista.map((f) => `<tr class="${f.fecha < hoy ? "pasado" : ""}"><td class="num">${h(fechaLarga(f.fecha))}</td><td>${h(f.nombre)}${f.nota ? `<br><span class="peq mut">${h(f.nota)}</span>` : ""}${f.pendienteBOC ? `<br><span class="peq" style="color:var(--warn)">Pendiente de publicar en el BOC</span>` : ""}</td><td>${pillTipo(f.tipo)}</td><td class="peq mut">${S.ajustes.semana.includes(dow(f.fecha)) ? cuenta(f.fecha) : "fin de semana"}</td></tr>`).join("")}</tbody></table></div>
   ${cambiosRecientes()}${SALUD?.lecturas?.length ? `<div class="card"><details><summary>Estado de las lecturas oficiales</summary><ul class="lista peq" style="margin-top:8px">${SALUD.lecturas.map((l) => `<li><span>${l.ok ? "✔" : "✖"} ${h(l.nombre)}</span><span class="mut">${h(l.detalle || "")}</span></li>`).join("")}</ul><p class="peq mut">Última lectura: ${h(SALUD.generado || "nunca")}</p></details></div>` : ""}`;
 }
 
@@ -235,9 +241,11 @@ function vAjustes() {
   <div class="card"><h3>Copia y pareja</h3><div class="fila"><button class="btn chico" data-act="exportar">Exportar mis datos</button><label class="btn chico">Importar<input type="file" accept="application/json" data-file="importar" hidden></label></div>
     <p class="peq mut" style="margin-top:10px">Importa el archivo exportado de tu pareja para ver sus vacaciones y los días libres en común.</p>
     <div class="fila"><label class="btn chico">Importar a mi pareja<input type="file" accept="application/json" data-file="pareja" hidden></label>${S.pareja.length ? `<button class="btn chico peligro" data-act="quitar-pareja">Quitar</button>` : ""}</div></div>
-  <div class="card"><h3>Sincronizar con GitHub (opcional)</h3><p class="peq mut">Guarda tus marcas en <code>data/mis-vacaciones.json</code> de tu repositorio. Con repositorio público, cualquiera podría leerlas.</p>
-    <div class="form"><label class="campo">Repositorio<input type="text" value="${h(a.repo)}" data-set="repo" placeholder="usuario/Vacaciones"></label><label class="campo">Token (Contents: read & write)<input type="password" value="${h(a.token)}" data-set="token" autocomplete="off"></label></div>
-    <div class="fila" style="margin-top:10px"><button class="btn chico" data-act="sync-subir">Subir</button><button class="btn chico" data-act="sync-bajar">Bajar</button></div></div>
+  <div class="card"><h3>Sincronizar móvil y PC (opcional)</h3><p class="peq mut">Usa un repositorio <b>privado</b> solo para tus datos (distinto del de la web). Se guarda en <code>data/mis-vacaciones.json</code>. El token se queda solo en este dispositivo.</p>
+    <div class="form"><label class="campo">Repositorio privado<input type="text" value="${h(a.repo)}" data-set="repo" placeholder="usuario/Vacaciones-datos" autocapitalize="off" autocorrect="off"></label><label class="campo">Token (solo ese repo · Contents: read & write)<input type="password" value="${h(a.token)}" data-set="token" autocomplete="off"></label>
+    <label class="check"><input type="checkbox" ${a.syncAuto ? "checked" : ""} data-set="syncAuto"> Sincronizar automáticamente</label></div>
+    <div class="fila" style="margin-top:10px"><button class="btn chico" data-act="sync-subir">Subir</button><button class="btn chico" data-act="sync-bajar">Bajar</button></div>
+    <p class="peq mut" style="margin-top:8px">${S.ultimaSync ? `Última sincronización: ${h(new Date(S.ultimaSync).toLocaleString("es-ES"))}.` : "Aún sin sincronizar."}</p></div>
   <div class="card"><h3>Datos</h3><p class="peq mut">Festivos cargados: ${Object.keys(DATOS.anios || {}).join(", ") || "reglas internas"}. Versión: ${h(DATOS.generado?.slice(0, 10) || "—")}.</p><div class="fila"><button class="btn chico" data-act="recargar">Buscar actualización</button><button class="btn chico peligro" data-act="reset">Borrar todo</button></div></div>
   </div></div>`;
 }
@@ -280,21 +288,34 @@ function textoSolicitud() {
   const l = bl.map((b) => `- ${b.pedir.length === 1 ? fechaLarga(b.pedir[0]) : `del ${fechaLarga(b.pedir[0])} al ${fechaLarga(b.pedir[b.pedir.length - 1])}`} (${en(b.coste, "día laborable", "días laborables")})`);
   return `Hola${S.ajustes.jefe ? " " + S.ajustes.jefe : ""},\n\nQuería solicitar estas vacaciones de ${anio}:\n${l.join("\n")}\n\nTotal: ${en(bl.reduce((s, b) => s + b.coste, 0), "día laborable", "días laborables")}. Dime si hay algún problema con esas fechas.\n\nGracias.`;
 }
-const datosExport = () => ({ version: 2, exportado: new Date().toISOString(), marcas: S.marcas, pareja: S.pareja, ajustes: { ...S.ajustes, token: "", repo: "" } });
+const datosExport = () => ({ version: 2, exportado: new Date().toISOString(), modificado: S.modificado || null, marcas: S.marcas, pareja: S.pareja, ajustes: { ...S.ajustes, token: "", repo: "" } });
 const b64 = (s) => btoa(unescape(encodeURIComponent(s))), deb64 = (s) => decodeURIComponent(escape(atob(s.replace(/\n/g, ""))));
-async function sync(dir) {
-  const { repo, token } = S.ajustes; if (!repo || !token) return toast("Rellena repositorio y token en Ajustes");
-  const url = `https://api.github.com/repos/${repo}/contents/data/mis-vacaciones.json`, cab = { Authorization: `Bearer ${token}`, Accept: "application/vnd.github+json" };
+async function sync(dir, { auto = false } = {}) {
+  const { repo, token } = S.ajustes; if (!repo || !token) return auto ? null : toast("Rellena repositorio y token en Ajustes");
+  const url = `https://api.github.com/repos/${repo.trim()}/contents/data/mis-vacaciones.json`, cab = { Authorization: `Bearer ${token.trim()}`, Accept: "application/vnd.github+json" };
+  const msg = (t) => { if (!auto) toast(t); };
   try {
-    const r = await fetch(url, { headers: cab }); const existe = r.ok ? await r.json() : null;
+    const r = await fetch(url, { headers: cab });
+    if (r.status === 401 || r.status === 403) return toast("El token no es válido o no tiene permiso (Contents: read & write)");
+    const existe = r.ok ? await r.json() : null;
+    const remoto = existe ? JSON.parse(deb64(existe.content)) : null, rMod = remoto?.modificado || remoto?.exportado || "";
     if (dir === "bajar") {
-      if (!existe) return toast("No hay datos subidos todavía");
-      const d = JSON.parse(deb64(existe.content)); S.marcas = d.marcas || {}; S.pareja = d.pareja || []; S.ajustes = { ...S.ajustes, ...d.ajustes, token: S.ajustes.token, repo: S.ajustes.repo };
-      guardar(); aplicarTema(); render(); return toast("Datos descargados");
+      if (!remoto) return msg(r.status === 404 ? "No hay datos subidos (o el repositorio no existe / el token no lo ve)" : "No hay datos subidos todavía");
+      if (auto && rMod <= (S.modificado || "")) return;
+      S.marcas = remoto.marcas || {}; S.pareja = remoto.pareja || [];
+      S.ajustes = { ...S.ajustes, ...remoto.ajustes, token: S.ajustes.token, repo: S.ajustes.repo, syncAuto: S.ajustes.syncAuto };
+      S.modificado = rMod || S.modificado; S.ultimaSync = new Date().toISOString();
+      guardar(true); aplicarTema(); render(); return toast("Datos descargados");
     }
+    if (remoto && rMod > (S.modificado || "")) {
+      if (auto) return toast("Hay cambios más recientes en GitHub: pulsa Bajar en Ajustes");
+      if (!confirm("En GitHub hay datos más recientes (otro dispositivo). ¿Sobrescribirlos con los de este?")) return;
+    }
+    if (!S.modificado) S.modificado = new Date().toISOString();
     const p = await fetch(url, { method: "PUT", headers: cab, body: JSON.stringify({ message: "Vacaciones: actualizar plan", content: b64(JSON.stringify(datosExport(), null, 1)), ...(existe ? { sha: existe.sha } : {}) }) });
-    toast(p.ok ? "Datos subidos" : `No se pudo subir (${p.status})`);
-  } catch { toast("Sin conexión con GitHub"); }
+    if (p.ok) { S.ultimaSync = new Date().toISOString(); guardar(true); if (vista === "ajustes") render(); }
+    if (!auto || !p.ok) toast(p.ok ? "Datos subidos" : `No se pudo subir (${p.status}). Revisa repositorio y token`);
+  } catch { msg("Sin conexión con GitHub"); }
 }
 async function cargarDatos() {
   [DATOS, MANUAL, CAMBIOS, SALUD] = await Promise.all([json("data/festivos.json", { anios: {} }), json("data/manual.json", {}), json("data/cambios.json", { cambios: [] }), json("data/salud.json", null)]);
@@ -392,10 +413,10 @@ document.addEventListener("change", async (e) => {
     const k = t.dataset.set;
     if (k === "extraAnio" || k === "entrantes" || k === "gastados") S.ajustes[k] = { ...S.ajustes[k], [anio]: t.value === "" ? undefined : Number(t.value) || 0 };
     else if (["diasAnuales", "arrastreMax"].includes(k)) S.ajustes[k] = Number(t.value) || 0;
-    else if (k === "arrastreCaduca") S.ajustes[k] = t.checked;
+    else if (k === "arrastreCaduca" || k === "syncAuto") S.ajustes[k] = t.checked;
     else if (k === "arrastreLimite") S.ajustes[k] = t.value.slice(5) || "03-31";
     else S.ajustes[k] = t.value;
-    guardar(); if (k === "tema") aplicarTema(); return render();
+    guardar(); if (k === "tema") aplicarTema(); if (["repo", "token", "jefe"].includes(k)) return; return render();
   }
   if (t.dataset.ui) { const k = t.dataset.ui; UI[k] = t.type === "checkbox" ? t.checked : Number(t.value); if (k !== "planPresupuesto") render(); return; }
   if (t.dataset.file) {
@@ -417,4 +438,5 @@ document.addEventListener("change", async (e) => {
   render({ conservarScroll: false });
   addEventListener("hashchange", () => { const x = location.hash.slice(2); if (FN[x] && x !== vista) { vista = x; render({ conservarScroll: false }); } });
   if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
+  if (S.ajustes.syncAuto) { sync("bajar", { auto: true }); document.addEventListener("visibilitychange", () => { if (!document.hidden && S.ajustes.syncAuto) sync("bajar", { auto: true }); }); }
 })();

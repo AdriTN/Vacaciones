@@ -41,9 +41,16 @@ Estados: **oficial** (decreto y locales leídos del BOC), **parcial** (falta alg
 3. *Actions → Actualizar festivos y publicar → Run workflow* (la primera vez recorre los números del BOC del año).
 4. Abre la URL de Pages en el móvil y añádela a la pantalla de inicio. Instala GitHub Mobile para los avisos.
 
-## Sincronizar tus vacaciones entre dispositivos
+## Sincronizar tus vacaciones entre dispositivos (en privado)
 
-*Ajustes → Sincronizar con GitHub*: token fino con permiso **Contents: Read and write** sobre este repositorio. Se guarda en `data/mis-vacaciones.json`. Con repo público **no escribas nada sensible**.
+La web (este repo) es pública pero **no contiene tus datos**: tus marcas viven en tu dispositivo. Para tenerlas en móvil y PC:
+
+1. Crea un repositorio **privado** aparte, p. ej. `Vacaciones-datos` (puede estar vacío, con un README).
+2. *GitHub → Settings → Developer settings → Fine-grained tokens*: token que acceda **solo a ese repo** con *Contents: Read and write*.
+3. En la app, *Ajustes → Sincronizar móvil y PC*: repositorio `usuario/Vacaciones-datos` y el token. Activa *Sincronizar automáticamente* si quieres que baje al abrir y suba al cambiar.
+4. Repite en el otro dispositivo y pulsa *Bajar*.
+
+Los datos se guardan en `data/mis-vacaciones.json` del repo privado. El token no sale del dispositivo ni se exporta. Si dos dispositivos cambian a la vez, la app avisa antes de sobrescribir.
 
 ## Mantenimiento
 
