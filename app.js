@@ -8,7 +8,7 @@ const $ = (s, r = document) => r.querySelector(s);
 const h = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const KEY = "vacgc-v1";
 const POR_DEFECTO = {
-  ajustes: { diasAnuales: 22, extraAnio: {}, entrantes: {}, guardar: {}, arrastreMax: 5, arrastreCaduca: false, arrastreLimite: "03-31", reserva: {}, plan: { navidad: "normal", verano: "2", semanaSanta: "no", distribucion: "equilibrada", prioridad: [], mesesVerano: [6, 7, 8, 9] }, semana: [1, 2, 3, 4, 5], jefe: "", empresaDias: [], tema: "auto", repo: "", token: "" },
+  ajustes: { diasAnuales: 22, extraAnio: {}, entrantes: {}, guardar: {}, arrastreMax: 5, arrastreCaduca: false, arrastreLimite: "03-31", reserva: {}, gastados: {}, plan: { navidad: "normal", verano: "2", semanaSanta: "no", distribucion: "equilibrada", prioridad: [], mesesVerano: [6, 7, 8, 9] }, semana: [1, 2, 3, 4, 5], jefe: "", empresaDias: [], tema: "auto", repo: "", token: "" },
   marcas: {}, pareja: [],
 };
 function cargar() {
@@ -51,7 +51,7 @@ function entrantesDe(a) {
   return saldoAnio(a - 1).guardar; // lo que decidiste guardar del año anterior
 }
 function saldoAnio(a) {
-  return M.saldo(C, { diasAnuales: S.ajustes.diasAnuales, extra: Number(S.ajustes.extraAnio?.[a] || 0), entrantes: a <= anioActual && S.ajustes.entrantes?.[a] === undefined ? 0 : entrantesDe(a), limiteEntrantes: limiteEntrantes(a), guardar: Number(S.ajustes.guardar?.[a] || 0), reserva: Number(S.ajustes.reserva?.[a] || 0), arrastreMax: Number(S.ajustes.arrastreMax || 0), hoy }, a);
+  return M.saldo(C, { diasAnuales: S.ajustes.diasAnuales, extra: Number(S.ajustes.extraAnio?.[a] || 0), entrantes: a <= anioActual && S.ajustes.entrantes?.[a] === undefined ? 0 : entrantesDe(a), limiteEntrantes: limiteEntrantes(a), guardar: Number(S.ajustes.guardar?.[a] || 0), reserva: Number(S.ajustes.reserva?.[a] || 0), gastados: Number(S.ajustes.gastados?.[a] || 0), arrastreMax: Number(S.ajustes.arrastreMax || 0), hoy }, a);
 }
 
 /* ---------- Piezas reutilizables ---------- */
@@ -64,7 +64,7 @@ function bloqueHTML(b, { botones = "" } = {}) {
 const estaAplicado = (b) => b.pedir.every((d) => S.marcas[d] === "V");
 const seg = (grupo, opciones, actual) => `<div class="seg" role="tablist">${opciones.map(([k, t]) => `<button role="tab" aria-selected="${actual === k}" class="${actual === k ? "on" : ""}" data-act="sub" data-k="${grupo}:${k}">${t}</button>`).join("")}</div>`;
 function anillo(sd) {
-  const total = Math.max(1, sd.total), usado = Math.min(1, sd.usados / total), r = 54, c = 2 * Math.PI * r;
+  const total = Math.max(1, sd.total), usado = Math.min(1, (sd.usados + sd.gastados) / total), r = 54, c = 2 * Math.PI * r;
   return `<div class="anillo"><svg viewBox="0 0 128 128" aria-hidden="true"><circle cx="64" cy="64" r="${r}" class="a-fondo"/><circle cx="64" cy="64" r="${r}" class="a-valor" stroke-dasharray="${(usado * c).toFixed(1)} ${c.toFixed(1)}" transform="rotate(-90 64 64)"/></svg>
     <div class="a-txt"><b class="num">${sd.restantes}</b><span>restantes</span></div></div>`;
 }
@@ -99,10 +99,11 @@ function vInicio() {
   const sig = M.bloquesActuales(C, anio).filter((b) => b.fin >= hoy)[0];
   const stepper = (txt, ayuda, n, menos, mas, dis) => `<div class="stepper-fila"><span class="peq">${txt} <span class="mut">${ayuda}</span></span><div class="stepper"><button data-act="${menos}" aria-label="Menos" ${n <= 0 ? "disabled" : ""}>−</button><b class="num">${n}</b><button data-act="${mas}" aria-label="Más" ${dis ? "disabled" : ""}>+</button></div></div>`;
   const reservaUI = stepper("Reserva para imprevistos", "(no se planifican)", sd.reserva, "reserva-menos", "reserva-mas", sd.reserva >= sd.restantes - sd.guardar);
-  const guardarUI = (S.ajustes.arrastreMax > 0 ? stepper(`Guardar para ${anio + 1}`, `(máx. ${S.ajustes.arrastreMax})`, sd.guardar, "guardar-menos", "guardar-mas", sd.guardar >= sd.guardables) : "") + reservaUI;
+  const gastadosUI = stepper("Ya disfrutados este año", "(antes de usar la app)", sd.gastados, "gastados-menos", "gastados-mas", false);
+  const guardarUI = gastadosUI + (S.ajustes.arrastreMax > 0 ? stepper(`Guardar para ${anio + 1}`, `(máx. ${S.ajustes.arrastreMax})`, sd.guardar, "guardar-menos", "guardar-mas", sd.guardar >= sd.guardables) : "") + reservaUI;
   return `<div class="stack">
   <section class="card hero"><div class="hero-in">${anillo(sd)}<div class="hero-txt"><h2>${anio === anioActual ? "Tus vacaciones" : `Vacaciones ${anio}`}</h2>
-      <p class="peq mut">${en(sd.usados, "día pedido", "días pedidos")} de ${sd.total}${sd.reserva ? ` · ${sd.reserva} en reserva` : ""}${sd.entrantes ? ` · incluye <b>${sd.entrantes}</b> guardados de ${anio - 1}` : ""}</p>
+      <p class="peq mut">${en(sd.usados, "día pedido", "días pedidos")}${sd.gastados ? ` + ${sd.gastados} ya disfrutados` : ""} de ${sd.total}${sd.reserva ? ` · ${sd.reserva} en reserva` : ""}${sd.entrantes ? ` · incluye <b>${sd.entrantes}</b> guardados de ${anio - 1}` : ""}</p>
       ${sd.restantes < 0 ? `<p class="peq" style="color:var(--err)"><b>Te pasas ${-sd.restantes} del saldo</b></p>` : ""}
       <div class="fila"><button class="btn pri" data-act="ir-plan">Generar plan</button><button class="btn" data-act="ir-cal">Mi calendario</button></div></div></div>${guardarUI}</section>
   ${alertas.join("")}
@@ -190,7 +191,7 @@ function vPlan() {
     <div class="opc"><h4>Dar más peso a</h4><div class="chips">${multi("prioridad", "verano", "Verano", p.prioridad)}${multi("prioridad", "navidad", "Navidad y Reyes", p.prioridad)}${multi("prioridad", "semanasanta", "Semana Santa", p.prioridad)}</div></div>
     <div class="opc"><h4>Reserva para imprevistos</h4><div class="chips">${reservas.map((n) => `<button class="chip ${sd.reserva === n ? "on" : ""}" data-act="reserva-fija" data-k="${n}">${n === 0 ? "Ninguna" : n + (n === 1 ? " día" : " días")}</button>`).join("")}</div><p class="peq mut">Esos días no se planifican: quedan libres por si surge algo.</p></div>
     <div class="form"><label class="campo">Días a repartir<input type="number" min="1" max="60" value="${pres}" data-ui="planPresupuesto"></label>
-      ${anio === anioActual ? `<label class="campo fila"><input type="checkbox" ${UI.planDesdeHoy ? "checked" : ""} data-ui="planDesdeHoy" style="width:22px;height:22px"><span>Solo desde hoy</span></label>` : ""}</div>
+      ${anio === anioActual ? `<label class="check"><input type="checkbox" ${UI.planDesdeHoy ? "checked" : ""} data-ui="planDesdeHoy"><span>Solo desde hoy</span></label>` : ""}</div>
     ${sd.guardar || sd.reserva ? `<p class="peq mut">De ${sd.restantes} restantes: ${sd.guardar ? `${sd.guardar} guardados para ${anio + 1}` : ""}${sd.guardar && sd.reserva ? " y " : ""}${sd.reserva ? `${sd.reserva} de reserva` : ""}; salen ${sd.aUsar} para planificar.</p>` : ""}
     <div class="fila"><button class="btn pri" data-act="calcular-plan">Calcular planes</button></div></div>
   <div class="grid">${UI.planRes ? Object.entries(UI.planRes).map(([k, r]) => planCard(k, r)).join("") : `<div class="card"><p class="mut">Ajusta tus preferencias y pulsa «Calcular planes».</p></div>`}</div>
@@ -217,11 +218,12 @@ function vAjustes() {
   return `<div class="stack"><div class="fila sp"><div><h2>Ajustes</h2><p class="sub" style="margin:0">Todo se guarda en este dispositivo.</p></div></div>
   <div class="grid">
   <div class="card"><h3>Tus días</h3><div class="form"><label class="campo">Días de vacaciones al año<input type="number" min="0" max="60" value="${a.diasAnuales}" data-set="diasAnuales"></label>
+    <label class="campo">Ya disfrutados en ${anio} (sin marcar en el calendario)<input type="number" min="0" max="60" value="${Number(a.gastados?.[anio] || 0)}" data-set="gastados"></label>
     <label class="campo">Extra en ${anio} (asuntos propios…)<input type="number" min="-30" max="60" value="${extra}" data-set="extraAnio"></label></div>
     <p class="peq" style="margin:12px 0 6px"><b>Días que trabajas</b></p><div class="chips">${dsem.map(([k, t]) => `<button class="chip ${a.semana.includes(k) ? "on" : ""}" data-act="sem" data-k="${k}">${t}</button>`).join("")}</div></div>
   <div class="card"><h3>Días sin disfrutar</h3><p class="peq mut">Si tu empresa deja guardar días al año siguiente, indícalo aquí. Si tu empresa los hace caducar, actívalo y pon la fecha; si no, quedan sin límite.</p>
     <div class="form"><label class="campo">Máximo que se puede guardar<input type="number" min="0" max="30" value="${a.arrastreMax}" data-set="arrastreMax"></label>
-    <label class="campo fila" style="gap:8px;align-items:center"><input type="checkbox" ${a.arrastreCaduca ? "checked" : ""} data-set="arrastreCaduca"> Los días guardados caducan</label>
+    <label class="check"><input type="checkbox" ${a.arrastreCaduca ? "checked" : ""} data-set="arrastreCaduca"> Los días guardados caducan</label>
     ${a.arrastreCaduca ? `<label class="campo">Caducan el (del año siguiente)<input type="date" value="${anioActual + 1}-${a.arrastreLimite}" data-set="arrastreLimite"></label>` : ""}
     <label class="campo">Guardados que traigo a ${anio}<input type="number" min="0" max="60" value="${entManual ?? (anio > anioActual ? sd.entrantes : 0)}" data-set="entrantes"></label></div>
     <p class="peq mut" style="margin-top:8px">Pon 0 en el máximo si tu empresa no lo permite. Para ${anio + 1}, los guardados salen de lo que reserves en Inicio.</p></div>
@@ -344,6 +346,7 @@ document.addEventListener("click", async (e) => {
     case "ir-puentes": UI.descSub = "puentes"; ir("descubrir"); break;
     case "ir-cal": ir("calendario"); break;
     case "plan-arrastre": UI.descSub = "plan"; UI.planPresupuesto = null; calcularPlanes(); ir("descubrir"); break;
+    case "gastados-mas": case "gastados-menos": { const n = Math.max(0, Number(S.ajustes.gastados?.[anio] || 0) + (a === "gastados-mas" ? 1 : -1)); S.ajustes.gastados = { ...S.ajustes.gastados, [anio]: n }; UI.planPresupuesto = null; guardar(); render(); break; }
     case "reserva-mas": cambiarReserva(1); break;
     case "reserva-menos": cambiarReserva(-1); break;
     case "reserva-fija": cambiarReserva(0, Number(k)); break;
@@ -387,7 +390,7 @@ document.addEventListener("change", async (e) => {
   const t = e.target;
   if (t.dataset.set) {
     const k = t.dataset.set;
-    if (k === "extraAnio" || k === "entrantes") S.ajustes[k] = { ...S.ajustes[k], [anio]: t.value === "" ? undefined : Number(t.value) || 0 };
+    if (k === "extraAnio" || k === "entrantes" || k === "gastados") S.ajustes[k] = { ...S.ajustes[k], [anio]: t.value === "" ? undefined : Number(t.value) || 0 };
     else if (["diasAnuales", "arrastreMax"].includes(k)) S.ajustes[k] = Number(t.value) || 0;
     else if (k === "arrastreCaduca") S.ajustes[k] = t.checked;
     else if (k === "arrastreLimite") S.ajustes[k] = t.value.slice(5) || "03-31";

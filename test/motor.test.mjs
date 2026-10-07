@@ -138,3 +138,8 @@ test("el plan indica qué preferencia no cabe", () => {
   const r = planOptimo(mk(), 2026, { ...DISTRIBUCIONES.equilibrada, presupuesto: 20, desde: "2026-10-07", anclas: [{ id: "verano", min: 9, max: 11, meses: [6, 7, 8, 9] }] });
   assert.deepEqual(r.anclasNo, ["verano"]);
 });
+
+test("días ya disfrutados antes de usar la app restan del saldo", () => {
+  const s = saldo(mk(), { diasAnuales: 22, gastados: 9 }, 2026);
+  assert.equal(s.restantes, 13); assert.equal(s.gastados, 9);
+});
