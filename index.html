@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Vacaciones GC</title>
+<meta name="description" content="Elige tus vacaciones óptimas con los festivos de Las Palmas de Gran Canaria: puentes, plan del año y avisos de cambios.">
+<meta name="theme-color" content="#0369a1">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Vacaciones GC">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<div id="app">
+  <nav class="side" id="side" aria-label="Navegación principal"></nav>
+  <header class="bar">
+    <h1 id="titulo">Vacaciones GC</h1>
+    <span class="sync" id="sync" role="status"></span>
+    <select id="selAnio" aria-label="Año"></select>
+  </header>
+  <main id="vista" tabindex="-1"></main>
+  <nav class="tabs" id="tabs" aria-label="Navegación principal"></nav>
+</div>
+<div class="toast" id="toast" role="status" hidden></div>
+<noscript>Esta aplicación necesita JavaScript.</noscript>
+<script type="module" src="app.js"></script>
+</body>
+</html>

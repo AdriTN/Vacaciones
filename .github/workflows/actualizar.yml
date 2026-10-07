@@ -1,0 +1,79 @@
+name: Actualizar festivos y publicar
+
+on:
+  schedule:
+    - cron: "23 5 * * *"   # cada día ~06:23 en Canarias
+  workflow_dispatch:        # botón "Run workflow" para lanzarlo a mano
+  push:
+    branches: [master, main]
+    paths-ignore:
+      - "data/festivos.json"
+      - "data/cambios.json"
+      - "data/estado.json"
+      - "data/salud.json"
+      - "data/calendario.ics"
+      - "data/nuevos.md"
+      - "data/mis-vacaciones.json"
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+  issues: write
+
+concurrency:
+  group: vacaciones
+  cancel-in-progress: false
+
+jobs:
+  actualizar:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Tests
+        run: node --test test/*.test.mjs
+
+      - name: Leer el BOC y regenerar festivos
+        run: node scripts/update.mjs
+
+      - name: Guardar datos
+        run: |
+          git config user.name "vacaciones-bot"
+          git config user.email "vacaciones-bot@users.noreply.github.com"
+          git add data/festivos.json data/cambios.json data/estado.json data/salud.json data/calendario.ics
+          git diff --cached --quiet || git commit -m "Festivos actualizados $(date -u +%F)"
+          git pull --rebase --autostash || true
+          git push || true
+
+      - name: Avisar si hay cambios (abre un Issue; GitHub Mobile te lo notifica)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ -s data/nuevos.md ]; then
+            gh issue create --title "Festivos Las Palmas de G.C. · cambios $(date -u +%F)" --body-file data/nuevos.md || true
+          fi
+
+      - uses: actions/configure-pages@v5
+
+      - name: Preparar sitio
+        run: |
+          mkdir -p _site/lib
+          cp index.html app.js app.css sw.js manifest.webmanifest icon.svg icon-*.png _site/
+          cp lib/util.mjs lib/festivos.mjs lib/motor.mjs lib/ics.mjs _site/lib/
+          cp -r data _site/data
+          rm -f _site/data/nuevos.md _site/data/estado.json _site/data/mis-vacaciones.json
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+      - id: deploy
+        uses: actions/deploy-pages@v4

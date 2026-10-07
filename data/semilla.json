@@ -1,0 +1,171 @@
+{
+ "generado": "2026-10-07T00:00:00.000Z",
+ "anios": {
+  "2026": {
+   "estado": "oficial",
+   "fuente": "BOE 28-10-2025 (calendario nacional), calendario laboral de Canarias 2026 y BOC-A-2025-165-3029 (fiestas locales 2026)",
+   "notas": [
+    "El lunes 7 de diciembre de 2026 NO es festivo en Canarias (las fuentes más recientes lo excluyen; algún medio lo da como festivo). Si tu empresa lo aplica, añádelo en Ajustes → Días de empresa."
+   ],
+   "festivos": [
+    {
+     "fecha": "2026-01-01",
+     "nombre": "Año Nuevo",
+     "tipo": "nacional"
+    },
+    {
+     "fecha": "2026-01-06",
+     "nombre": "Epifanía del Señor",
+     "tipo": "nacional"
+    },
+    {
+     "fecha": "2026-02-17",
+     "nombre": "Martes de Carnaval",
+     "tipo": "local"
+    },
+    {
+     "fecha": "2026-04-02",
+     "nombre": "Jueves Santo",
+     "tipo": "autonomico"
+    },
+    {
+     "fecha": "2026-04-03",
+     "nombre": "Viernes Santo",
+     "tipo": "nacional"
+    },
+    {
+     "fecha": "2026-05-01",
+     "nombre": "Fiesta del Trabajo",
+     "tipo": "nacional"
+    },
+    {
+     "fecha": "2026-05-30",
+     "nombre": "Día de Canarias",
+     "tipo": "autonomico"
+    },
+    {
+     "fecha": "2026-06-24",
+     "nombre": "Fundación de la ciudad (San Juan)",
+     "tipo": "local"
+    },
+    {
+     "fecha": "2026-08-15",
+     "nombre": "Asunción de la Virgen",
+     "tipo": "nacional"
+    },
+    {
+     "fecha": "2026-09-08",
+     "nombre": "Nuestra Señora del Pino",
+     "tipo": "insular"
+    },
+    {
+     "fecha": "2026-10-12",
+     "nombre": "Fiesta Nacional de España",
+     "tipo": "nacional"
+    },
+    {
+     "fecha": "2026-11-02",
+     "nombre": "Todos los Santos (trasladado del domingo 1)",
+     "tipo": "nacional",
+     "nota": "Canarias traslada Todos los Santos al lunes 2."
+    },
+    {
+     "fecha": "2026-12-08",
+     "nombre": "Inmaculada Concepción",
+     "tipo": "nacional"
+    },
+    {
+     "fecha": "2026-12-25",
+     "nombre": "Navidad",
+     "tipo": "nacional"
+    }
+   ]
+  },
+  "2027": {
+   "estado": "parcial",
+   "fuente": "Gobierno de Canarias: calendario laboral 2027 (festivos nacionales y autonómicos); locales aprobadas por el Pleno de Las Palmas de G.C. (pendientes de publicar en el BOC)",
+   "notas": [
+    "Carnaval (9 feb) y San Juan (24 jun) los aprobó el Pleno del Ayuntamiento; se confirmarán cuando se publique la Orden de fiestas locales en el BOC."
+   ],
+   "festivos": [
+    {
+     "fecha": "2027-01-01",
+     "nombre": "Año Nuevo",
+     "tipo": "nacional"
+    },
+    {
+     "fecha": "2027-01-06",
+     "nombre": "Epifanía del Señor",
+     "tipo": "nacional"
+    },
+    {
+     "fecha": "2027-02-09",
+     "nombre": "Martes de Carnaval",
+     "tipo": "local",
+     "pendienteBOC": true
+    },
+    {
+     "fecha": "2027-03-25",
+     "nombre": "Jueves Santo",
+     "tipo": "autonomico"
+    },
+    {
+     "fecha": "2027-03-26",
+     "nombre": "Viernes Santo",
+     "tipo": "nacional"
+    },
+    {
+     "fecha": "2027-05-01",
+     "nombre": "Fiesta del Trabajo",
+     "tipo": "nacional"
+    },
+    {
+     "fecha": "2027-05-30",
+     "nombre": "Día de Canarias",
+     "tipo": "autonomico"
+    },
+    {
+     "fecha": "2027-06-24",
+     "nombre": "Fundación de la ciudad (San Juan)",
+     "tipo": "local",
+     "pendienteBOC": true
+    },
+    {
+     "fecha": "2027-08-16",
+     "nombre": "Asunción de la Virgen (trasladado del domingo 15)",
+     "tipo": "nacional"
+    },
+    {
+     "fecha": "2027-09-08",
+     "nombre": "Nuestra Señora del Pino",
+     "tipo": "insular"
+    },
+    {
+     "fecha": "2027-10-12",
+     "nombre": "Fiesta Nacional de España",
+     "tipo": "nacional"
+    },
+    {
+     "fecha": "2027-11-01",
+     "nombre": "Todos los Santos",
+     "tipo": "nacional"
+    },
+    {
+     "fecha": "2027-12-06",
+     "nombre": "Día de la Constitución",
+     "tipo": "nacional"
+    },
+    {
+     "fecha": "2027-12-08",
+     "nombre": "Inmaculada Concepción",
+     "tipo": "nacional"
+    },
+    {
+     "fecha": "2027-12-25",
+     "nombre": "Navidad",
+     "tipo": "nacional"
+    }
+   ]
+  }
+ }
+}
