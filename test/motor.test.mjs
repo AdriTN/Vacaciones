@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { diasEntre } from "../lib/util.mjs";
 import { creaFestivos, pascua, carnavalMartes, reglas } from "../lib/festivos.mjs";
-import { DISTRIBUCIONES, planConArrastre, tocan, SEMANA_L_V, esLaborable, candidatos, puentes, planOptimo, PRESETS, bloquesActuales, saldo, conflictos, valorDia } from "../lib/motor.mjs";
+import { valorarBloque, DISTRIBUCIONES, planConArrastre, tocan, SEMANA_L_V, esLaborable, candidatos, puentes, planOptimo, PRESETS, bloquesActuales, saldo, conflictos, valorDia } from "../lib/motor.mjs";
 
 const datos = JSON.parse(readFileSync(new URL("../data/semilla.json", import.meta.url)));
 const mk = (vac = [], bloq = []) => ({ festivos: creaFestivos(datos, {}), semana: SEMANA_L_V, vac: new Set(vac), bloqueados: new Set(bloq) });
@@ -142,4 +142,25 @@ test("el plan indica qué preferencia no cabe", () => {
 test("días ya disfrutados antes de usar la app restan del saldo", () => {
   const s = saldo(mk(), { diasAnuales: 22, gastados: 9 }, 2026);
   assert.equal(s.restantes, 13); assert.equal(s.gastados, 9);
+});
+
+test("un bloque que cruza de año cuenta todos sus días pedidos", () => {
+  const ctx = mk(["2026-12-28", "2026-12-29", "2026-12-30", "2026-12-31", "2027-01-04", "2027-01-05", "2027-01-07", "2027-01-08"]);
+  const b = bloquesActuales(ctx, 2026);
+  assert.equal(b.length, 1); assert.equal(b[0].coste, 8); assert.equal(b[0].libres, 17); assert.deepEqual(b[0].porAnio, { 2026: 4, 2027: 4 }); assert.equal(b[0].cruzaAnio, true);
+  assert.equal(bloquesActuales(ctx, 2027).length, 1);
+});
+test("los días que sobran pasan al año siguiente y se gastan primero", () => {
+  const s26 = saldo(mk(["2026-12-28", "2026-12-29", "2026-12-30", "2026-12-31"]), { diasAnuales: 22, gastados: 13, arrastreMax: 5 }, 2026);
+  assert.equal(s26.restantes, 5); assert.equal(s26.trasladan, 5);
+  const s27 = saldo(mk(["2027-01-04", "2027-01-05", "2027-01-07", "2027-01-08"]), { diasAnuales: 22, entrantes: s26.trasladan, arrastreMax: 5 }, 2027);
+  assert.equal(s27.restantes, 23); assert.equal(s27.entrantesUsados, 4); assert.equal(s27.entrantesQuedan, 1);
+});
+test("valorarBloque propone algo mejor cuando existe y confirma lo óptimo", () => {
+  const ctx = mk(["2026-03-10"]);
+  const malo = valorarBloque(ctx, bloquesActuales(ctx, 2026)[0]);
+  assert.notEqual(malo.veredicto, "excelente"); assert.ok(malo.alternativas.length > 0); assert.ok(malo.alternativas[0].ganados > 0);
+  const ctx2 = mk(["2026-04-06"]);
+  const ok = valorarBloque(ctx2, bloquesActuales(ctx2, 2026)[0]);
+  assert.equal(ok.veredicto, "excelente");
 });

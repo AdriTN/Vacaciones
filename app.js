@@ -43,7 +43,7 @@ const svg = (k, c = "") => `<svg class="ico ${c}" viewBox="0 0 24 24" fill="none
 async function json(u, def) { try { const r = await fetch(u, { cache: "no-cache" }); if (!r.ok) throw 0; return await r.json(); } catch { return def; } }
 function reconstruirCtx() { C = { festivos: F, semana: new Set(S.ajustes.semana), vac: new Set(Object.keys(S.marcas).filter((k) => S.marcas[k] === "V")), bloqueados: new Set(Object.keys(S.marcas).filter((k) => S.marcas[k] === "B")) }; }
 const en = (n, u, p) => plural(n, u, p);
-const toast = (t) => { const e = $("#toast"); e.textContent = t; e.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(() => (e.hidden = true), 2600); };
+const toast = (t, ms = 2600) => { const e = $("#toast"); e.textContent = t; e.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(() => (e.hidden = true), ms); };
 const cuenta = (i) => { const n = diasEntre(hoy, i); return n === 0 ? "hoy" : n === 1 ? "mañana" : n > 0 ? `en ${n} días` : `hace ${-n} días`; };
 const pillTipo = (t) => `<span class="pill ${TIPOS[t]?.clase || ""}">${h(TIPOS[t]?.etiqueta || t)}</span>`;
 const ddmm = (i) => `${Number(i.slice(8))} ${MESES[mesDe(i) - 1].slice(0, 3)}`;
@@ -54,17 +54,17 @@ function entrantesDe(a) {
   const m = S.ajustes.entrantes?.[a];
   if (m !== undefined && m !== "" && m !== null) return Number(m) || 0;
   if (a <= anioActual) return 0;
-  return saldoAnio(a - 1).guardar; // lo que decidiste guardar del año anterior
+  return saldoAnio(a - 1).trasladan; // lo que guardas (o sobra) del año anterior
 }
 function saldoAnio(a) {
-  return M.saldo(C, { diasAnuales: S.ajustes.diasAnuales, extra: Number(S.ajustes.extraAnio?.[a] || 0), entrantes: a <= anioActual && S.ajustes.entrantes?.[a] === undefined ? 0 : entrantesDe(a), limiteEntrantes: limiteEntrantes(a), guardar: Number(S.ajustes.guardar?.[a] || 0), reserva: Number(S.ajustes.reserva?.[a] || 0), gastados: Number(S.ajustes.gastados?.[a] || 0), arrastreMax: Number(S.ajustes.arrastreMax || 0), hoy }, a);
+  return M.saldo(C, { diasAnuales: S.ajustes.diasAnuales, extra: Number(S.ajustes.extraAnio?.[a] || 0), entrantes: a <= anioActual && S.ajustes.entrantes?.[a] === undefined ? 0 : entrantesDe(a), limiteEntrantes: limiteEntrantes(a), guardar: S.ajustes.guardar?.[a], reserva: Number(S.ajustes.reserva?.[a] || 0), gastados: Number(S.ajustes.gastados?.[a] || 0), arrastreMax: Number(S.ajustes.arrastreMax || 0), hoy }, a);
 }
 
 /* ---------- Piezas reutilizables ---------- */
 function bloqueHTML(b, { botones = "" } = {}) {
   const r = (b.libres / b.coste).toFixed(1).replace(".", ",");
   return `<div class="puente"><div class="fila sp"><strong>${h(rangoTexto(b.ini, b.fin))}</strong><span class="pill ok">×${r}</span></div>
-    <div class="peq">Pides <b>${en(b.coste, "día", "días")}</b> y descansas <b>${en(b.libres, "día", "días")} seguidos</b>${b.festivos.length ? ` · ${h([...new Set(b.festivos)].join(", "))}` : ""}</div>
+    <div class="peq">Pides <b>${en(b.coste, "día", "días")}</b>${b.cruzaAnio ? ` (${Object.entries(b.porAnio).map(([y, n]) => `${n} de ${y}`).join(" + ")})` : ""} y descansas <b>${en(b.libres, "día", "días")} seguidos</b>${b.festivos.length ? ` · ${h([...new Set(b.festivos)].join(", "))}` : ""}</div>
     <div class="dias">${b.pedir.map((d) => `<span>${h(fechaCorta(d))}</span>`).join("")}</div>${botones ? `<div class="fila">${botones}</div>` : ""}</div>`;
 }
 const estaAplicado = (b) => b.pedir.every((d) => S.marcas[d] === "V");
@@ -106,10 +106,10 @@ function vInicio() {
   const stepper = (txt, ayuda, n, menos, mas, dis) => `<div class="stepper-fila"><span class="peq">${txt} <span class="mut">${ayuda}</span></span><div class="stepper"><button data-act="${menos}" aria-label="Menos" ${n <= 0 ? "disabled" : ""}>−</button><b class="num">${n}</b><button data-act="${mas}" aria-label="Más" ${dis ? "disabled" : ""}>+</button></div></div>`;
   const reservaUI = stepper("Reserva para imprevistos", "(no se planifican)", sd.reserva, "reserva-menos", "reserva-mas", sd.reserva >= sd.restantes - sd.guardar);
   const gastadosUI = stepper("Ya disfrutados este año", "(antes de usar la app)", sd.gastados, "gastados-menos", "gastados-mas", false);
-  const guardarUI = gastadosUI + (S.ajustes.arrastreMax > 0 ? stepper(`Guardar para ${anio + 1}`, `(máx. ${S.ajustes.arrastreMax})`, sd.guardar, "guardar-menos", "guardar-mas", sd.guardar >= sd.guardables) : "") + reservaUI;
+  const guardarUI = gastadosUI + (S.ajustes.arrastreMax > 0 ? stepper(`Guardar para ${anio + 1}`, sd.guardarExplicito ? `(máx. ${S.ajustes.arrastreMax})` : `(automático: lo que sobre, máx. ${S.ajustes.arrastreMax})`, sd.trasladan, "guardar-menos", "guardar-mas", sd.trasladan >= sd.guardables) : "") + reservaUI;
   return `<div class="stack">
   <section class="card hero"><div class="hero-in">${anillo(sd)}<div class="hero-txt"><h2>${anio === anioActual ? "Tus vacaciones" : `Vacaciones ${anio}`}</h2>
-      <p class="peq mut">${en(sd.usados, "día pedido", "días pedidos")}${sd.gastados ? ` + ${sd.gastados} ya disfrutados` : ""} de ${sd.total}${sd.reserva ? ` · ${sd.reserva} en reserva` : ""}${sd.entrantes ? ` · incluye <b>${sd.entrantes}</b> guardados de ${anio - 1}` : ""}</p>
+      <p class="peq mut">${en(sd.usados, "día pedido", "días pedidos")}${sd.gastados ? ` + ${sd.gastados} ya disfrutados` : ""} de ${sd.total}${sd.reserva ? ` · ${sd.reserva} en reserva` : ""}${sd.entrantes ? ` · de ${anio - 1}: ${sd.entrantesQuedan} de ${sd.entrantes} guardados sin gastar (se descuentan primero)` : ""}</p>
       ${sd.restantes < 0 ? `<p class="peq" style="color:var(--err)"><b>Te pasas ${-sd.restantes} del saldo</b></p>` : ""}
       <div class="fila"><button class="btn pri" data-act="ir-plan">Generar plan</button><button class="btn" data-act="ir-cal">Mi calendario</button></div></div></div>${guardarUI}</section>
   ${alertas.join("")}
@@ -147,10 +147,20 @@ function barraHerramientas() {
     <button class="chip ${UI.calor ? "on" : ""}" data-act="calor" title="Colorea cada día según los días seguidos libres que lograrías pidiéndolo">Mapa de calor</button></div></div>`;
 }
 const leyenda = () => `<div class="leyenda"><span><i style="background:var(--nac)"></i>Nacional</span><span><i style="background:var(--can)"></i>Canarias</span><span><i style="background:var(--isl)"></i>Gran Canaria</span><span><i style="background:var(--loc)"></i>Las Palmas</span><span><i style="background:var(--emp)"></i>Empresa</span><span><i style="background:var(--vac)"></i>Vacaciones</span><span><i style="background:repeating-linear-gradient(45deg,var(--blq),var(--blq) 3px,transparent 3px,transparent 6px)"></i>No disponible</span><span><i style="border:2px solid var(--par)"></i>Pareja</span></div>`;
+const VEREDICTO = { excelente: ["ok", "Muy buena elección: no hay nada mejor por ese coste"], buena: ["warn", "Buena, pero hay algo algo mejor"], mejorable: ["mala", "Mejorable: hay opciones mejores"] };
+function valoracionHTML(b, i) {
+  UI.alts = UI.alts || {}; UI.alts[i] = null;
+  if (b.fin < hoy) return "";
+  if (b.cruzaAnio) return `<p class="peq mut">Bloque a caballo de dos años: se cuenta entero (${b.libres} días libres por ${b.coste} pedidos).</p>`;
+  const v = M.valorarBloque(C, b, { desde: anio === anioActual ? hoy : null }), [cl, tx] = VEREDICTO[v.veredicto];
+  UI.alts[i] = v;
+  const alts = v.alternativas.map((c, j) => `<li><span><b>${h(rangoTexto(c.ini, c.fin))}</b> · pides ${c.coste}, descansas ${c.libres} <span class="mut">(+${c.ganados - b.ganados} de ganancia)</span></span><button class="btn chico" data-act="cambiar-bloque" data-k="${i}" data-alt="${j}">Cambiar</button></li>`).join("");
+  return `<div class="valora"><span class="pill ${cl}">${tx}</span>${alts ? `<p class="peq mut" style="margin:6px 0 2px">Alternativas por el mismo coste o menos:</p><ul class="lista peq">${alts}</ul>` : ""}</div>`;
+}
 function bloquesCard() {
   const bl = M.bloquesActuales(C, anio), comun = S.pareja.filter((d) => anioDe(d) === anio && (C.vac.has(d) || !M.esLaborable(C, d))).length;
   return `<div class="card"><div class="fila sp"><h3>Mis bloques de vacaciones</h3><div class="fila noprint"><button class="btn chico" data-act="solicitud">Copiar solicitud</button><button class="btn chico" data-act="ics-mio">.ics</button><button class="btn chico" data-act="imprimir">Imprimir</button></div></div>
-    ${bl.length ? `<div class="grid">${bl.map((b) => `<div>${bloqueHTML(b)}</div>`).join("")}</div><button class="btn chico peligro" style="margin-top:10px" data-act="borrar-vac">Borrar vacaciones ${anio}</button>` : `<p class="peq mut">Todavía no has marcado ningún día.</p>`}
+    ${bl.length ? `<div class="grid">${bl.map((b, i) => `<div>${bloqueHTML(b)}${valoracionHTML(b, i)}</div>`).join("")}</div><button class="btn chico peligro" style="margin-top:10px" data-act="borrar-vac">Borrar vacaciones ${anio}</button>` : `<p class="peq mut">Todavía no has marcado ningún día.</p>`}
     ${S.pareja.length ? `<p class="peq">💞 Días libres en común con tu pareja: <b>${comun}</b> de ${S.pareja.filter((d) => anioDe(d) === anio).length}.</p>` : ""}</div>`;
 }
 function vCalendario() {
@@ -255,16 +265,16 @@ const FN = { inicio: vInicio, calendario: vCalendario, descubrir: vDescubrir, aj
 function aplicarTema() { const t = S.ajustes.tema; if (t === "auto") delete document.documentElement.dataset.tema; else document.documentElement.dataset.tema = t; }
 const navHTML = () => NAV.map(([k, t]) => `<button class="nav ${vista === k ? "on" : ""}" data-go="${k}" ${vista === k ? 'aria-current="page"' : ""}>${svg(k)}<span>${t}</span></button>`).join("");
 function render({ conservarScroll = true } = {}) {
-  const y = window.scrollY; reconstruirCtx();
+  const y = $("#vista").scrollTop; reconstruirCtx();
   $("#side").innerHTML = `<div class="marca"><img src="icon-192.png" alt="">Vacaciones GC</div>${navHTML()}<div class="relleno"></div><button class="nav ${vista === "ajustes" ? "on" : ""}" data-go="ajustes">${svg("ajustes")}<span>Ajustes</span></button>`;
   $("#tabs").innerHTML = navHTML();
   $("#titulo").textContent = vista === "ajustes" ? "Ajustes" : "Vacaciones GC";
   $("#anioNav").innerHTML = `<button class="ibtn" data-act="anio-nav" data-k="-1" aria-label="Año anterior" ${anio <= anioActual ? "disabled" : ""}>${svg("izq")}</button><b class="num">${anio}</b><button class="ibtn" data-act="anio-nav" data-k="1" aria-label="Año siguiente" ${anio >= anioActual + 2 ? "disabled" : ""}>${svg("der")}</button>`;
   $("#bAjustes").className = `ibtn ${vista === "ajustes" ? "on" : ""}`; $("#bAjustes").innerHTML = svg("ajustes");
   $("#vista").innerHTML = FN[vista]();
-  if (conservarScroll) window.scrollTo(0, y);
+  if (conservarScroll) $("#vista").scrollTop = y;
 }
-function ir(v) { vista = v; if (location.hash !== `#/${v}`) history.replaceState(null, "", `#/${v}`); render({ conservarScroll: false }); window.scrollTo(0, 0); }
+function ir(v) { vista = v; if (location.hash !== `#/${v}`) history.replaceState(null, "", `#/${v}`); render({ conservarScroll: false }); $("#vista").scrollTop = 0; }
 
 /* ---------- Acciones ---------- */
 const poner = (d, t) => { if (t === "P") { if (!S.pareja.includes(d)) S.pareja.push(d); } else if (t === "X") { delete S.marcas[d]; S.pareja = S.pareja.filter((x) => x !== d); } else if (t !== "V" || M.esLaborable(C, d)) S.marcas[d] = t; };
@@ -274,6 +284,14 @@ function alternar(d) {
   else if (t === "X") poner(d, "X");
   else if (t === "V" && !M.esLaborable(C, d)) toast(F.get(d) ? `Ya es festivo: ${F.get(d).nombre}` : "Ya es un día libre");
   else if (S.marcas[d] === t) delete S.marcas[d]; else S.marcas[d] = t;
+}
+function consejo(d) {
+  if (S.marcas[d] !== "V") return;
+  const b = M.bloquesActuales(C, anio).find((x) => x.pedir.includes(d)); if (!b || b.fin < hoy) return;
+  const v = M.valorarBloque(C, b, { desde: anio === anioActual ? hoy : null });
+  if (v.cruzaAnio) return toast(`${b.libres} días libres por ${b.coste} pedidos`);
+  const t = v.alternativas[0];
+  toast(t ? `${b.libres} libres por ${b.coste}. Mejor: ${rangoTexto(t.ini, t.fin)} (${t.libres} por ${t.coste}). Mira «Mis bloques»` : `${b.libres} libres por ${b.coste}: no hay nada mejor por ese coste`, 5000);
 }
 const marcarBloque = (b) => b.pedir.forEach((d) => (S.marcas[d] = "V"));
 const desmarcarBloque = (b) => b.pedir.forEach((d) => { if (S.marcas[d] === "V") delete S.marcas[d]; });
@@ -351,7 +369,7 @@ function motivoAnclas(r) {
   if (pasado) return "El verano que pediste ya pasó este año; desmarca «Solo desde hoy» o planifica el año siguiente.";
   return `No cabe ${nombres.join(" ni ") || "alguna preferencia"} con los días y bloques de este plan. Prueba con más días o una distribución más concentrada.`;
 }
-const cambiarGuardar = (d) => { const sd = saldoAnio(anio); S.ajustes.guardar = { ...S.ajustes.guardar, [anio]: Math.max(0, Math.min(sd.guardables, sd.guardar + d)) }; guardar(); render(); };
+const cambiarGuardar = (d) => { const sd = saldoAnio(anio); S.ajustes.guardar = { ...S.ajustes.guardar, [anio]: Math.max(0, Math.min(sd.guardables, sd.trasladan + d)) }; UI.planPresupuesto = null; guardar(); render(); };
 const cambiarReserva = (d, valor = null) => { const sd = saldoAnio(anio); S.ajustes.reserva = { ...S.ajustes.reserva, [anio]: Math.max(0, Math.min(sd.restantes - sd.guardar, valor ?? sd.reserva + d)) }; guardar(); UI.planPresupuesto = null; render(); };
 
 document.addEventListener("click", async (e) => {
@@ -379,7 +397,11 @@ document.addEventListener("click", async (e) => {
         if (!UI.ancla) { UI.ancla = d; toast("Ahora toca el último día del rango"); render(); break; }
         const [x, y] = [UI.ancla, d].sort(); rango(x, y).forEach((i) => poner(i, UI.herramienta)); UI.ancla = null;
       } else alternar(d);
-      guardar(); render(); break;
+      guardar(); render(); consejo(d); break;
+    case "cambiar-bloque": {
+      const bl = M.bloquesActuales(C, anio)[Number(k)], c = UI.alts?.[Number(k)]?.alternativas?.[Number(b.dataset.alt)]; if (!bl || !c) break;
+      desmarcarBloque(bl); marcarBloque(c); guardar(); render(); toast(`Cambiado a ${rangoTexto(c.ini, c.fin)}`); break;
+    }
     case "herr": UI.herramienta = k; UI.ancla = null; render(); break;
     case "rango": UI.rangoModo = !UI.rangoModo; UI.ancla = null; render(); break;
     case "calor": UI.calor = !UI.calor; render(); break;
@@ -433,6 +455,7 @@ document.addEventListener("change", async (e) => {
 /* ---------- Arranque ---------- */
 (async function init() {
   aplicarTema();
+  ["gesturestart", "gesturechange", "gestureend"].forEach((t) => document.addEventListener(t, (e) => e.preventDefault()));
   await cargarDatos();
   const v = location.hash.slice(2); vista = FN[v] ? v : "inicio";
   render({ conservarScroll: false });
