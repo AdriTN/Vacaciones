@@ -1,4 +1,10 @@
 {
- "generado": "2026-10-18T09:44:38.315Z",
- "lecturas": []
+ "generado": "2026-10-19T10:59:55.565Z",
+ "lecturas": [
+  {
+   "nombre": "BOC 2026",
+   "ok": true,
+   "detalle": "1 números leídos (último 208)"
+  }
+ ]
 }
