@@ -1,15 +1,4 @@
 {
- "generado": "2026-11-20T14:12:12.538Z",
- "lecturas": [
-  {
-   "nombre": "BOC 2026",
-   "ok": true,
-   "detalle": "14 números leídos (último 235)"
-  },
-  {
-   "nombre": "BOC-A-2026-234-4068",
-   "ok": false,
-   "detalle": "no aparece Las Palmas de Gran Canaria"
-  }
- ]
+ "generado": "2026-11-21T13:36:30.357Z",
+ "lecturas": []
 }
